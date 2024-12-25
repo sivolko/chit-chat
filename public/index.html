@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shubhendu Talks Here</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- <link rel="icon" href="/favicon.ico"> Update the favicon path -->
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .filter {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .filter select {
+            padding: 10px;
+            background-color: #1e1e1e;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+        }
+        .main {
+            width: 100%;
+            max-width: 800px;
+        }
+        .giscus {
+            margin-top: 20px;
+        }
+        @media screen and (max-width: 600px) {
+            .filter select {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1 style="color: #ff6347;"><Script></Script>Sivolko Talks Here</h1>
+    <div class="filter">
+        <select id="categorySelect" onchange="loadCategory(this.value)">
+        </select>
+    </div>
+    <div class="main">
+        <div class="giscus"></div>
+    </div>
+    <script src="https://giscus.app/client.js"
+            data-repo="sivolko/community-talk"
+            data-repo-id="R_kgDONd5C2w"
+            data-category="General"
+            data-category-id="DIC_kwDONd5C284ClgMS"
+            data-mapping="title"
+            data-strict="1"
+            data-reactions-enabled="1"
+            data-emit-metadata="1"
+            data-input-position="top"
+            data-theme="preferred_color_scheme"
+            data-lang="en"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+    <script>
+        async function loadCategory(category) {
+            document.querySelector('.giscus').innerHTML = '';
+            const script = document.createElement('script');
+            script.src = 'https://giscus.app/client.js';
+            script.setAttribute('data-repo', 'sivolko/community-talk');
+            script.setAttribute('data-repo-id', 'R_kgDONd5C2w');
+            script.setAttribute('data-category', category);
+            script.setAttribute('data-category-id', 'DIC_kwDONd5C284ClgMS');
+            script.setAttribute('data-mapping', 'title');
+            script.setAttribute('data-strict', '1');
+            script.setAttribute('data-reactions-enabled', '1');
+            script.setAttribute('data-emit-metadata', '1');
+            script.setAttribute('data-input-position', 'top');
+            script.setAttribute('data-theme', 'preferred_color_scheme');
+            script.setAttribute('data-lang', 'en');
+            script.setAttribute('data-loading', 'lazy');
+            script.setAttribute('crossorigin', 'anonymous');
+            script.setAttribute('async', '');
+            document.querySelector('.giscus').appendChild(script);
+        }
+
+        async function fetchCategories() {
+            try {
+                const response = await fetch('/api/get-github-token');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch GitHub token');
+                }
+                const { token } = await response.json();
+
+                const categoriesResponse = await fetch('https://api.github.com/graphql', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        query: `
+                        {
+                            repository(owner: "sivolko", name: "community-talk") {
+                                discussionCategories(first: 10) {
+                                    nodes {
+                                        name
+                                        slug
+                                    }
+                                }
+                            }
+                        }
+                        `
+                    })
+                });
+
+                if (!categoriesResponse.ok) {
+                    throw new Error('Failed to fetch categories');
+                }
+
+                const result = await categoriesResponse.json();
+                const categories = result.data.repository.discussionCategories.nodes;
+                const select = document.getElementById('categorySelect');
+                select.innerHTML = '';
+                categories.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category.slug;
+                    option.textContent = category.name;
+                    select.appendChild(option);
+                });
+
+                // Load the first category by default
+                if (categories.length > 0) {
+                    loadCategory(categories[0].slug);
+                }
+            } catch (error) {
+                console.error('Error fetching categories:', error);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', fetchCategories);
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                const activeElement = document.activeElement;
+                if (activeElement && activeElement.tagName === 'TEXTAREA') {
+                    event.preventDefault();
+                    activeElement.form.submit();
+                    setTimeout(() => {
+                        loadCategory(document.querySelector('.filter select').value);
+                    }, 1000); // Adjust the timeout as needed
+                }
+            }
+        });
+    </script>
+</body>
+</html>
